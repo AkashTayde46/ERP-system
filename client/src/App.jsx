@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage';
 import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AccountantDashboard from './pages/AccountantDashboard';
 import { useAuth } from './context/AuthContext';
 
 function AppRoutes() {
@@ -37,6 +38,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute role="admin">
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accountant-dashboard"
+        element={
+          <ProtectedRoute role="accountant">
+            <AccountantDashboard />
           </ProtectedRoute>
         }
       />

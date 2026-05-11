@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: [true, 'Password is required'], minlength: 6 },
     role: {
       type: String,
-      enum: ['student', 'teacher', 'admin'],
+      enum: ['student', 'teacher', 'admin', 'accountant'],
       required: [true, 'Role is required'],
     },
 
@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema(
     // Admin-specific fields
     adminId: { type: String, default: '' },
     designation_admin: { type: String, default: '' },
+
+    // Accountant-specific fields
+    accountantId: { type: String, default: '' },
+    designation_accountant: { type: String, default: '' },
 
     // Common
     phone: { type: String, default: '' },

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/apiClient';
 import { useAuth } from '../context/AuthContext';
 import './StudentDashboard.css';
 
@@ -53,6 +54,10 @@ export default function StudentDashboard() {
   const [queryText, setQueryText] = useState('');
   const [querySubject, setQuerySubject] = useState('');
   const [queries, setQueries] = useState(SAMPLE_QUERIES);
+  const [fees, setFees] = useState(SAMPLE_FEES);
+  const [attendance, setAttendance] = useState(SAMPLE_ATTENDANCE);
+  const [timetable, setTimetable] = useState(SAMPLE_TIMETABLE);
+  const [grades, setGrades] = useState(SAMPLE_GRADES);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -73,15 +78,84 @@ export default function StudentDashboard() {
     setQuerySubject('');
   };
 
-  const totalFees = SAMPLE_FEES.reduce((a, f) => a + f.amount, 0);
-  const paidFees = SAMPLE_FEES.reduce((a, f) => a + f.paid, 0);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [feeRes, attendanceRes, resultRes, timetableRes] = await Promise.all([
+          apiClient.get('/api/fees/me'),
+          apiClient.get('/api/attendance/me'),
+          apiClient.get('/api/results/me'),
+          apiClient.get('/api/timetable/me'),
+        ]);
+
+        if (feeRes.data?.fees?.length) {
+          setFees(feeRes.data.fees.map(f => ({
+            id: f._id,
+            semester: f.title || 'Semester Fee',
+            amount: f.amount,
+            paid: f.amountPaid,
+            due: f.amountDue,
+            status: f.status,
+            date: f.paidDate ? new Date(f.paidDate).toISOString().split('T')[0] : '-',
+          })));
+        }
+
+        if (attendanceRes.data?.records?.length) {
+          const subjectMap = {};
+          attendanceRes.data.records.forEach(record => {
+            const subject = record.subject;
+            const presentEntry = record.entries.find(e => e.student?.name && e.status === 'present');
+            if (!subjectMap[subject]) {
+              subjectMap[subject] = { subject, total: 0, present: 0 };
+            }
+            subjectMap[subject].total += 1;
+            if (presentEntry) subjectMap[subject].present += 1;
+          });
+          setAttendance(Object.values(subjectMap).map(s => ({
+            ...s,
+            percentage: s.total ? Math.round((s.present / s.total) * 100) : 0,
+          })));
+        }
+
+        if (resultRes.data?.results?.length) {
+          const firstResult = resultRes.data.results[0];
+          if (firstResult?.marks?.length) {
+            setGrades(firstResult.marks.map(m => ({
+              subject: m.subject,
+              code: '-',
+              credits: 0,
+              grade: firstResult.grade || '-',
+              marks: m.marks,
+              maxMarks: m.maxMarks,
+            })));
+          }
+        }
+
+        if (timetableRes.data?.timetable?.length) {
+          const entries = timetableRes.data.timetable[0]?.entries || [];
+          const dayMap = {};
+          entries.forEach(e => {
+            if (!dayMap[e.day]) dayMap[e.day] = [];
+            dayMap[e.day].push(`${e.subject} (${e.period})`);
+          });
+          setTimetable(Object.keys(dayMap).map(day => ({ day, slots: dayMap[day] })));
+        }
+      } catch (error) {
+        // Keep sample data for prototype
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const totalFees = fees.reduce((a, f) => a + f.amount, 0);
+  const paidFees = fees.reduce((a, f) => a + f.paid, 0);
   const dueFees = totalFees - paidFees;
-  const avgAttendance = Math.round(SAMPLE_ATTENDANCE.reduce((a, s) => a + s.percentage, 0) / SAMPLE_ATTENDANCE.length);
+  const avgAttendance = Math.round(attendance.reduce((a, s) => a + s.percentage, 0) / attendance.length || 0);
   const cgpa = '9.2';
 
   return (
     <div className="dashboard-layout">
-      {/* Sidebar */}
       <aside className="sidebar student-sidebar">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon" style={{ background: 'linear-gradient(135deg, #4f8ef7, #1a6ef5)' }}>🎓</div>
@@ -118,14 +192,12 @@ export default function StudentDashboard() {
             </div>
           </div>
           <button id="student-logout" className="btn btn-outline btn-full" style={{ marginTop: 10, fontSize: '0.85rem' }} onClick={handleLogout}>
-            🚪 Logout
+            Logout
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
-        {/* OVERVIEW */}
         {activeSection === 'overview' && (
           <div className="animate-fade-in-up">
             <div className="dashboard-header">
@@ -150,7 +222,6 @@ export default function StudentDashboard() {
               ))}
             </div>
 
-            {/* Quick Info */}
             <div className="content-section">
               <div className="section-header">
                 <div className="section-title">📋 Your Academic Profile</div>
@@ -173,7 +244,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* FEES */}
         {activeSection === 'fees' && (
           <div className="animate-fade-in-up">
             <div className="dashboard-header">
@@ -198,7 +268,7 @@ export default function StudentDashboard() {
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: '#ef4444', borderRadius: '20px 20px 0 0' }}></div>
                 <div className="stat-card-icon">⚠️</div>
                 <div className="stat-card-value">₹{dueFees.toLocaleString()}</div>
-                <div className="stat-card-label">Amount Due</div>
+                <div className="stat-card-label">Pending Due</div>
               </div>
             </div>
 
@@ -218,7 +288,7 @@ export default function StudentDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {SAMPLE_FEES.map(f => (
+                    {fees.map(f => (
                       <tr key={f.id}>
                         <td><code style={{ color: '#4f8ef7', fontSize: '0.85rem' }}>{f.id}</code></td>
                         <td>{f.semester}</td>
@@ -240,7 +310,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* GRADES */}
         {activeSection === 'grades' && (
           <div className="animate-fade-in-up">
             <div className="dashboard-header">
@@ -260,7 +329,7 @@ export default function StudentDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {SAMPLE_GRADES.map((g, i) => (
+                  {grades.map((g, i) => (
                     <tr key={i}>
                       <td style={{ fontWeight: 500 }}>{g.subject}</td>
                       <td><span className="badge badge-blue">{g.code}</span></td>
@@ -289,7 +358,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* ATTENDANCE */}
         {activeSection === 'attendance' && (
           <div className="animate-fade-in-up">
             <div className="dashboard-header">
@@ -297,7 +365,7 @@ export default function StudentDashboard() {
               <p className="dashboard-subtitle">Your subject-wise attendance summary</p>
             </div>
             <div className="card-grid">
-              {SAMPLE_ATTENDANCE.map((a, i) => (
+              {attendance.map((a, i) => (
                 <div key={i} className="info-card" style={{ borderLeft: `3px solid ${a.percentage >= 75 ? '#10d9a0' : '#ef4444'}` }}>
                   <div style={{ fontWeight: 600, marginBottom: 8 }}>{a.subject}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
@@ -314,7 +382,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* TIMETABLE */}
         {activeSection === 'schedule' && (
           <div className="animate-fade-in-up">
             <div className="dashboard-header">
@@ -325,7 +392,7 @@ export default function StudentDashboard() {
               <table>
                 <thead><tr><th>Day</th><th>Morning (9AM)</th><th>Afternoon (11AM)</th><th>Evening (2PM)</th></tr></thead>
                 <tbody>
-                  {SAMPLE_TIMETABLE.map((t, i) => (
+                  {timetable.map((t, i) => (
                     <tr key={i}>
                       <td style={{ fontWeight: 700, color: '#4f8ef7' }}>{t.day}</td>
                       {t.slots.map((s, j) => <td key={j} style={{ fontSize: '0.88rem' }}>{s}</td>)}
@@ -337,7 +404,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* QUERIES */}
         {activeSection === 'queries' && (
           <div className="animate-fade-in-up">
             <div className="dashboard-header">
@@ -356,7 +422,7 @@ export default function StudentDashboard() {
                   <label className="form-label">Query Details</label>
                   <textarea className="form-input" rows="4" placeholder="Describe your query in detail..." value={queryText} onChange={e => setQueryText(e.target.value)} required style={{ resize: 'vertical' }}></textarea>
                 </div>
-                <button id="submit-query" type="submit" className="btn btn-student">📤 Submit Query</button>
+                <button id="submit-query" type="submit" className="btn btn-student">Submit Query</button>
               </form>
             </div>
 

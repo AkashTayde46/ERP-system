@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/apiClient';
 import { useAuth } from '../context/AuthContext';
 import './TeacherDashboard.css';
 
@@ -44,6 +45,12 @@ export default function TeacherDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const [attendance, setAttendance] = useState(SAMPLE_ATTENDANCE_DATA);
   const [queries, setQueries] = useState(STUDENT_QUERIES);
+  const [attendanceForm, setAttendanceForm] = useState({
+    className: '',
+    division: '',
+    subject: '',
+    date: new Date().toISOString().split('T')[0],
+  });
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -57,8 +64,50 @@ export default function TeacherDashboard() {
     setQueries(prev => prev.map(q => q.id === id ? { ...q, status: 'resolved' } : q));
   };
 
+  useEffect(() => {
+    const loadStudents = async () => {
+      try {
+        const { data } = await apiClient.get('/api/students');
+        if (data.students?.length) {
+          setAttendance(data.students.map(s => ({
+            name: s.name,
+            roll: s.rollNumber,
+            studentId: s._id,
+            present: true,
+          })));
+        }
+      } catch (error) {
+        // Keep sample data for prototype
+      }
+    };
+
+    loadStudents();
+  }, []);
+
   const presentCount = attendance.filter(s => s.present).length;
-  const totalStudents = SAMPLE_STUDENTS.length;
+  const totalStudents = attendance.length || SAMPLE_STUDENTS.length;
+
+  const handleAttendanceChange = (e) => {
+    setAttendanceForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSaveAttendance = async () => {
+    try {
+      const payload = {
+        className: attendanceForm.className,
+        division: attendanceForm.division,
+        subject: attendanceForm.subject,
+        date: attendanceForm.date,
+        entries: attendance.map(s => ({
+          student: s.studentId,
+          status: s.present ? 'present' : 'absent',
+        })),
+      };
+      await apiClient.post('/api/attendance', payload);
+    } catch (error) {
+      // Keep silent for prototype
+    }
+  };
 
   return (
     <div className="dashboard-layout">
@@ -217,6 +266,28 @@ export default function TeacherDashboard() {
               <p className="dashboard-subtitle">CS301 — {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
             </div>
             <div className="info-card" style={{ marginBottom: 16 }}>
+              <div className="form-row" style={{ marginBottom: 12 }}>
+                <div className="form-group">
+                  <label className="form-label">Class</label>
+                  <input className="form-input" name="className" value={attendanceForm.className} onChange={handleAttendanceChange} placeholder="e.g. 10" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Division</label>
+                  <input className="form-input" name="division" value={attendanceForm.division} onChange={handleAttendanceChange} placeholder="e.g. A" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Subject</label>
+                  <input className="form-input" name="subject" value={attendanceForm.subject} onChange={handleAttendanceChange} placeholder="e.g. Mathematics" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Date</label>
+                  <input className="form-input" type="date" name="date" value={attendanceForm.date} onChange={handleAttendanceChange} />
+                </div>
+              </div>
+            </div>
+            <div className="info-card" style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 <div style={{ color: '#10d9a0', fontWeight: 600 }}>✅ Present: {attendance.filter(s => s.present).length}</div>
                 <div style={{ color: '#ef4444', fontWeight: 600 }}>❌ Absent: {attendance.filter(s => !s.present).length}</div>
@@ -250,7 +321,7 @@ export default function TeacherDashboard() {
                 </tbody>
               </table>
             </div>
-            <button id="save-attendance" className="btn btn-teacher" style={{ marginTop: 16 }}>💾 Save Attendance</button>
+            <button id="save-attendance" className="btn btn-teacher" style={{ marginTop: 16 }} onClick={handleSaveAttendance}>Save Attendance</button>
           </div>
         )}
 

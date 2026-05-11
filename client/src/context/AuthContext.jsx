@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { setAuthToken } from '../api/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,7 @@ export const AuthProvider = ({ children }) => {
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
       setToken(savedToken);
+      setAuthToken(savedToken);
     }
     setLoading(false);
   }, []);
@@ -22,6 +24,7 @@ export const AuthProvider = ({ children }) => {
     setToken(authToken);
     localStorage.setItem('erp_user', JSON.stringify(userData));
     localStorage.setItem('erp_token', authToken);
+    setAuthToken(authToken);
   };
 
   const logout = () => {
@@ -29,6 +32,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('erp_user');
     localStorage.removeItem('erp_token');
+    setAuthToken(null);
   };
 
   return (

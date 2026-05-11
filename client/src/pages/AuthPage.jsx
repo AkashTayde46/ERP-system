@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 import { useAuth } from '../context/AuthContext';
 import './AuthPage.css';
 
@@ -29,6 +29,14 @@ const ROLES = [
     color: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
   },
+  {
+    id: 'accountant',
+    label: 'Accountant',
+    icon: 'AC',
+    desc: 'Manage fee records and receipts',
+    color: '#f59e0b',
+    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+  },
 ];
 
 export default function AuthPage() {
@@ -42,7 +50,7 @@ export default function AuthPage() {
     name: '', email: '', password: '', confirmPassword: '',
     studentId: '', course: '', semester: '1',
     teacherId: '', department: '', subjects: '', designation: '',
-    adminId: '', phone: '',
+    adminId: '', accountantId: '', phone: '',
   });
 
   const { login } = useAuth();
@@ -74,7 +82,7 @@ export default function AuthPage() {
         ? { email: form.email, password: form.password, role: selectedRole }
         : { ...form, role: selectedRole };
 
-      const { data } = await axios.post(endpoint, payload);
+      const { data } = await apiClient.post(endpoint, payload);
 
       if (data.success) {
         login(data.user, data.token);
@@ -92,7 +100,7 @@ export default function AuthPage() {
     setMode(m => m === 'login' ? 'register' : 'login');
     setError('');
     setSuccess('');
-    setForm({ name: '', email: '', password: '', confirmPassword: '', studentId: '', course: '', semester: '1', teacherId: '', department: '', subjects: '', designation: '', adminId: '', phone: '' });
+    setForm({ name: '', email: '', password: '', confirmPassword: '', studentId: '', course: '', semester: '1', teacherId: '', department: '', subjects: '', designation: '', adminId: '', accountantId: '', phone: '' });
   };
 
   return (
@@ -288,6 +296,27 @@ export default function AuthPage() {
                       <option>Finance Manager</option>
                       <option>Principal</option>
                       <option>Registrar</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {mode === 'register' && selectedRole === 'accountant' && (
+              <div className="role-fields animate-fade-in">
+                <div className="role-fields-label" style={{ color: currentRole.color }}>Accountant Details</div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Accountant ID</label>
+                    <input className="form-input" name="accountantId" placeholder="e.g. ACC2024001" value={form.accountantId} onChange={handleChange} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Designation</label>
+                    <select className="form-select" name="designation" value={form.designation} onChange={handleChange}>
+                      <option value="">Select designation</option>
+                      <option>Senior Accountant</option>
+                      <option>Account Officer</option>
+                      <option>Finance Clerk</option>
                     </select>
                   </div>
                 </div>

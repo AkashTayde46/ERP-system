@@ -1,4 +1,6 @@
 const User = require('../Models/User');
+const Student = require('../Models/Student');
+const Teacher = require('../Models/Teacher');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'erp_super_secret_jwt_key_2026';
@@ -26,6 +28,7 @@ exports.register = async (req, res) => {
       subjects,
       designation,
       adminId,
+      accountantId,
       phone,
     } = req.body;
 
@@ -49,9 +52,30 @@ exports.register = async (req, res) => {
       });
     } else if (role === 'admin') {
       Object.assign(userData, { adminId, designation_admin: designation });
+    } else if (role === 'accountant') {
+      Object.assign(userData, { accountantId, designation_accountant: designation });
     }
 
     const user = await User.create(userData);
+
+    if (role === 'student') {
+      await Student.create({
+        user: user._id,
+        name: user.name,
+        rollNumber: studentId || '',
+      });
+    }
+
+    if (role === 'teacher') {
+      await Teacher.create({
+        user: user._id,
+        name: user.name,
+        phone: phone || '',
+        email: user.email,
+        designation: designation || '',
+        subject: subjects || '',
+      });
+    }
     const token = generateToken(user._id, user.role);
 
     res.status(201).json({
@@ -113,6 +137,8 @@ exports.login = async (req, res) => {
         studentId: user.studentId,
         teacherId: user.teacherId,
         adminId: user.adminId,
+        designation_accountant: user.designation_accountant,
+        accountantId: user.accountantId,
       },
     });
   } catch (error) {

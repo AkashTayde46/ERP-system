@@ -1,0 +1,14 @@
+.accountant-sidebar .sidebar-logo-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0f172a;
+}
+
+.accountant-sidebar .sidebar-nav-item.active button {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.btn-accountant {
+  background: #f59e0b;
+  color: #0f172a;
+}

@@ -3,6 +3,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./Routes/authRoutes');
+const studentRoutes = require('./Routes/studentRoutes');
+const teacherRoutes = require('./Routes/teacherRoutes');
+const attendanceRoutes = require('./Routes/attendanceRoutes');
+const feeRoutes = require('./Routes/feeRoutes');
+const examRoutes = require('./Routes/examRoutes');
+const resultRoutes = require('./Routes/resultRoutes');
+const timetableRoutes = require('./Routes/timetableRoutes');
 
 dotenv.config();
 
@@ -21,6 +28,13 @@ mongoose
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/teachers', teacherRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/fees', feeRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/results', resultRoutes);
+app.use('/api/timetable', timetableRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
