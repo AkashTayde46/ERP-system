@@ -1,0 +1,4 @@
+.admin-sidebar .sidebar-nav-item.active button {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
